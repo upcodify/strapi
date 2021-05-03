@@ -27,7 +27,7 @@ const recipeModel = {
   collectionName: '',
 };
 
-describe('Create entries in different locales', () => {
+describe('Read entries in different locales', () => {
   beforeAll(async () => {
     await builder.addContentType(recipeModel).build();
 
@@ -50,66 +50,70 @@ describe('Create entries in different locales', () => {
   });
 
   describe('Single-Type', () => {
-    test('Create an entry in default locale (locale specified)', async () => {
+    test("Cannot read an entry that doesn't exist (locale not specified)", async () => {
       const res = await rq({
-        method: 'PUT',
+        method: 'GET',
         url: '/recipe',
-        body: { name: 'Onion soup', locale: 'en' },
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    test("Cannot read an entry that doesn't exist (locale specified)", async () => {
+      const res = await rq({
+        method: 'GET',
+        url: '/recipe',
+        qs: { _locale: 'en' },
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    test('Can read an entry in default locale (locale not specified)', async () => {
+      await strapi.entityService.create(
+        { data: { name: 'Onion soup', locale: 'en' } },
+        { model: 'recipe' }
+      );
+
+      const res = await rq({
+        method: 'GET',
+        url: '/recipe',
       });
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'en', localizations: [] });
-      await strapi.query('recipe').delete();
     });
 
-    test('Create an entry in default locale (locale not specified)', async () => {
+    test('Can read an entry in default locale (locale specified)', async () => {
       const res = await rq({
-        method: 'PUT',
+        method: 'GET',
         url: '/recipe',
-        body: { name: 'Onion soup' },
+        qs: { _locale: 'en' },
       });
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'en', localizations: [] });
-      await strapi.query('recipe').delete();
     });
 
-    test('Create an entry in "fr"', async () => {
-      const res = await rq({
-        method: 'PUT',
-        url: '/recipe',
+    test('Can read an entry in "fr"', async () => {
+      await rq({
+        method: 'POST',
+        url: '/recipe/localizations',
         body: { name: 'Onion soup', locale: 'fr' },
       });
 
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'fr', localizations: [] });
-    });
-
-    test('Cannot create an entry if one already exist', async () => {
       const res = await rq({
-        method: 'PUT',
+        method: 'GET',
         url: '/recipe',
-        body: { name: 'Onion soup', locale: 'en' },
+        qs: { _locale: 'fr' },
       });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
-        error: 'Bad Request',
-        message: 'singleType.alreadyExists',
-        statusCode: 400,
+        name: 'Onion soup',
+        locale: 'fr',
+        localizations: [{ locale: 'en' }],
       });
-    });
-
-    test('Cannot create an entry with localizations', async () => {
-      await strapi.query('recipe').delete();
-      const res = await rq({
-        method: 'PUT',
-        url: '/recipe',
-        body: { name: 'Onion soup', locale: 'en', localizations: [1] },
-      });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'en', localizations: [] });
     });
   });
 });

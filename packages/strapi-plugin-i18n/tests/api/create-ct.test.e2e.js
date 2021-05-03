@@ -1,6 +1,5 @@
 'use strict';
 
-// Helpers.
 const { createTestBuilder } = require('../../../../test/helpers/builder');
 const { createStrapiInstance } = require('../../../../test/helpers/strapi');
 const { createAuthRequest } = require('../../../../test/helpers/request');
@@ -96,6 +95,17 @@ describe('Create entries in different locales', () => {
         message: "This locale doesn't exist",
         statusCode: 400,
       });
+    });
+
+    test.skip('Cannot create an entry with localizations', async () => {
+      const res = await rq({
+        method: 'POST',
+        url: '/recipes',
+        body: { name: 'Onion soup', locale: 'en', localizations: [1] },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'en', localizations: [] });
     });
   });
 });

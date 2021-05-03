@@ -8,9 +8,10 @@ const builder = createTestBuilder();
 let strapi;
 let rq;
 let localeId;
+const model = 'recipe';
+let recipe;
 
 const recipeModel = {
-  kind: 'singleType',
   attributes: {
     name: {
       type: 'string',
@@ -27,7 +28,7 @@ const recipeModel = {
   collectionName: '',
 };
 
-describe('Delete entries in different locales', () => {
+describe('Update entries in different locales', () => {
   beforeAll(async () => {
     await builder.addContentType(recipeModel).build();
 
@@ -39,6 +40,11 @@ describe('Delete entries in different locales', () => {
       name: 'French',
     });
 
+    recipe = await strapi.entityService.create(
+      { data: { name: 'Onion soup', locale: 'en' } },
+      { model }
+    );
+
     localeId = locale.id;
   });
 
@@ -49,52 +55,29 @@ describe('Delete entries in different locales', () => {
     await builder.cleanup();
   });
 
-  describe('Single-Type', () => {
-    test('Delete an entry in default locale (locale specified)', async () => {
-      await strapi.entityService.create(
-        { data: { name: 'Onion soup', locale: 'en' } },
-        { model: 'recipe' }
-      );
-
+  describe('Collection-Type', () => {
+    test('Cannot update locale', async () => {
       const res = await rq({
-        method: 'DELETE',
-        url: '/recipe',
+        method: 'PUT',
+        url: `/recipes/${recipe.id}`,
         qs: { _locale: 'en' },
+        body: { name: 'Best onion soup', locale: 'fr' },
       });
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'en', localizations: [] });
+      expect(res.body).toMatchObject({ name: 'Best onion soup', locale: 'en', localizations: [] });
     });
 
-    test('Delete an entry in default locale (locale not specified)', async () => {
-      await strapi.entityService.create(
-        { data: { name: 'Onion soup', locale: 'en' } },
-        { model: 'recipe' }
-      );
-
+    test('Cannot update localizations', async () => {
       const res = await rq({
-        method: 'DELETE',
-        url: '/recipe',
+        method: 'PUT',
+        url: `/recipes/${recipe.id}`,
+        qs: { _locale: 'en' },
+        body: { name: 'Best onion soup', localizations: [{ locale: 'fr', id: 1 }] },
       });
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'en', localizations: [] });
-    });
-
-    test('Delete an entry in "fr"', async () => {
-      await strapi.entityService.create(
-        { data: { name: 'Onion soup', locale: 'fr' } },
-        { model: 'recipe' }
-      );
-
-      const res = await rq({
-        method: 'DELETE',
-        url: '/recipe',
-        qs: { _locale: 'fr' },
-      });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'fr', localizations: [] });
+      expect(res.body).toMatchObject({ name: 'Best onion soup', locale: 'en', localizations: [] });
     });
   });
 });

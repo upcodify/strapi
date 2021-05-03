@@ -8,6 +8,7 @@ const builder = createTestBuilder();
 let strapi;
 let rq;
 let localeId;
+const model = 'recipe';
 
 const recipeModel = {
   kind: 'singleType',
@@ -27,7 +28,7 @@ const recipeModel = {
   collectionName: '',
 };
 
-describe('Create entries in different locales', () => {
+describe('Update entries in different locales', () => {
   beforeAll(async () => {
     await builder.addContentType(recipeModel).build();
 
@@ -38,6 +39,15 @@ describe('Create entries in different locales', () => {
       code: 'fr',
       name: 'French',
     });
+
+    const enRecipe = await strapi.entityService.create(
+      { data: { name: 'Onion soup', locale: 'en' } },
+      { model }
+    );
+    await strapi.entityService.create(
+      { data: { name: 'Onion soup', locale: 'fr', localizations: [enRecipe.id] } },
+      { model }
+    );
 
     localeId = locale.id;
   });
@@ -50,66 +60,83 @@ describe('Create entries in different locales', () => {
   });
 
   describe('Single-Type', () => {
-    test('Create an entry in default locale (locale specified)', async () => {
+    test('Can update an entry in default locale (locale not specified)', async () => {
       const res = await rq({
         method: 'PUT',
         url: '/recipe',
-        body: { name: 'Onion soup', locale: 'en' },
+        body: { name: 'Best onion soup' },
       });
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'en', localizations: [] });
-      await strapi.query('recipe').delete();
-    });
-
-    test('Create an entry in default locale (locale not specified)', async () => {
-      const res = await rq({
-        method: 'PUT',
-        url: '/recipe',
-        body: { name: 'Onion soup' },
-      });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'en', localizations: [] });
-      await strapi.query('recipe').delete();
-    });
-
-    test('Create an entry in "fr"', async () => {
-      const res = await rq({
-        method: 'PUT',
-        url: '/recipe',
-        body: { name: 'Onion soup', locale: 'fr' },
-      });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'fr', localizations: [] });
-    });
-
-    test('Cannot create an entry if one already exist', async () => {
-      const res = await rq({
-        method: 'PUT',
-        url: '/recipe',
-        body: { name: 'Onion soup', locale: 'en' },
-      });
-
-      expect(res.status).toBe(400);
       expect(res.body).toMatchObject({
-        error: 'Bad Request',
-        message: 'singleType.alreadyExists',
-        statusCode: 400,
+        name: 'Best onion soup',
+        locale: 'en',
+        localizations: [{ locale: 'fr' }],
       });
     });
 
-    test('Cannot create an entry with localizations', async () => {
-      await strapi.query('recipe').delete();
+    test('Can update an entry in default locale (locale specified)', async () => {
       const res = await rq({
         method: 'PUT',
         url: '/recipe',
-        body: { name: 'Onion soup', locale: 'en', localizations: [1] },
+        body: { name: 'Best onion soup' },
+        qs: { _locale: 'en' },
       });
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ name: 'Onion soup', locale: 'en', localizations: [] });
+      expect(res.body).toMatchObject({
+        name: 'Best onion soup',
+        locale: 'en',
+        localizations: [{ locale: 'fr' }],
+      });
+    });
+
+    test('Can update an entry in "FR"', async () => {
+      const res = await rq({
+        method: 'PUT',
+        url: '/recipe',
+        body: { name: 'Best onion soup' },
+        qs: { _locale: 'fr' },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        name: 'Best onion soup',
+        locale: 'fr',
+        localizations: [{ locale: 'en' }],
+      });
+    });
+
+    test('Cannot update locale', async () => {
+      const res = await rq({
+        method: 'PUT',
+        url: '/recipe',
+        qs: { _locale: 'en' },
+        body: { name: 'Best onion soup', locale: 'fr' },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        name: 'Best onion soup',
+        locale: 'en',
+        localizations: [{ locale: 'fr' }],
+      });
+    });
+
+    test('Cannot update localizations', async () => {
+      const res = await rq({
+        method: 'PUT',
+        url: '/recipe',
+        qs: { _locale: 'en' },
+        body: { name: 'Best onion soup', localizations: [1] },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        name: 'Best onion soup',
+        locale: 'en',
+        localizations: [{ locale: 'fr' }],
+      });
     });
   });
 });
