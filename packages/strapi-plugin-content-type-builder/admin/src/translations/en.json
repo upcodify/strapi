@@ -65,6 +65,8 @@
   "form.attribute.component.option.reuse-existing.description": "Reuse a component already created to keep your data consistent across content-types.",
   "form.attribute.component.option.single": "Single component",
   "form.attribute.component.option.single.description": "Best for grouping fields like full address, main information, etc...",
+  "form.attribute.item.collapsable": "Collapsable",
+  "form.attribute.item.collapsable.description": "Unset to always show full content without collapse button",
   "form.attribute.item.customColumnName": "Custom column names",
   "form.attribute.item.customColumnName.description": "This is useful to rename database column names in a more comprehensive format for the API's responses",
   "form.attribute.item.date.type.date": "date",

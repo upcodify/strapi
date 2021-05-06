@@ -94,6 +94,19 @@ const attributeOptions = {
     },
     validations: {},
   },
+  collapsable: {
+    autoFocus: false,
+    name: 'collapsable',
+    type: 'checkbox',
+    default: true,
+    label: {
+      id: getTrad('form.attribute.item.collapsable'),
+    },
+    description: {
+      id: getTrad('form.attribute.item.collapsable.description'),
+    },
+    validations: {},
+  },
 };
 
 export default attributeOptions;
